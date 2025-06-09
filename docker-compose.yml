@@ -1,0 +1,59 @@
+# Define a versão do formato do arquivo docker-compose.
+version: "2"
+
+# Define os serviços (containers) que serão criados.
+# No seu caso, são dois: db (MySQL) e wordpress
+services:
+#Força o uso da arquitetura x86 (AMD/Intel), necessária para compatibilidade com imagens que não têm suporte ARM64 (como no seu Mac M1/M2/M3)
+# Diz ao Docker para usar a imagem do MySQL versão 5.7.
+  db:
+    platform: linux/amd64
+    image: mysql:5.7
+# Cria um volume persistente chamado db_data.
+# Mapeia o volume para o diretório /var/lib/mysql dentro do container,
+# Isso garante que os dados não sejam perdidos quando o container for reiniciado ou removido.
+    volumes:
+      - db_data:/var/lib/mysql
+# Garante que o container seja reiniciado automaticamente se parar ou se o sistema for reiniciado.
+    restart: always
+
+#Define variáveis de ambiente usadas pelo MySQL na inicialização:
+#MYSQL_ROOT_PASSWORD: senha do usuário root do MySQL.
+#MYSQL_DATABASE: cria automaticamente um banco de dados com esse nome.
+#MYSQL_USER e MYSQL_PASSWORD: cria um usuário com acesso ao banco definido.
+
+    environment:
+      MYSQL_ROOT_PASSWORD: somewordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+
+
+# Nome do serviço para o WordPress.
+  wordpress:
+# Mesmo motivo que no serviço db: compatibilidade com Mac ARM  
+    platform: linux/amd64
+
+# Garante que o container wordpress só seja iniciado após o container db
+    depends_on:
+      - db
+
+# Usa a imagem mais recente do WordPress disponível no Docker Hub     
+    image: wordpress:latest
+
+# Mapeia a porta 80 do container (padrão HTTP) para a porta 8000 do seu computador (host).
+    ports:
+      - "8000:80"
+    restart: always
+
+# Configura o WordPress para se conectar ao banco de dados:
+# WORDPRESS_DB_HOST: nome do serviço db e porta 3306 (padrão do MySQL).
+# WORDPRESS_DB_USER e WORDPRESS_DB_PASSWORD: mesmas credenciais criadas no container db.
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+
+# Define o volume nomeado db_data usado pelo MySQL.
+volumes:
+  db_data:
